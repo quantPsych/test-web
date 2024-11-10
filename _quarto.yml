@@ -7,8 +7,12 @@ website:
     left:
     - href: index.qmd
       text: Home
-    - about.qmd
-
+    - href: about.qmd
+      text: About
+    - text: Lectures
+      menu:
+      - href: lectures/week1-intro/test-md.qmd
+        text: Week 1 - Intro
 format:
   html:
     theme: cosmo
