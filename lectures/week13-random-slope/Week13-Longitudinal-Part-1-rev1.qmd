@@ -20,64 +20,64 @@ format:
     highlight-style: tango # pygments, zenburn, tango, kate, monochrome, espresso, zenburn, haddock, breezedark, breezelight
     fig-width: 7
     fig-height: 5
-    output-dir: "Handouts"
-  revealjs: 
-    # include-in-header: preamble.html
-    incremental: false
-    smaller: false
-    scrollable: true
-    background-transition: fade
-    progress: true
-    history: true
-    hash-type: number    
-    slide-number: c/t
-    show-slide-number: all  
-    menu:
-      side: right
-      width: normal
-      numbers: true
-    chalkboard:
-      theme: chalkboard
-    css: style.css
-  clean-revealjs:
-    self-contained: true
-    incremental: false
-    slide-number: c/t
-    smaller: false
-    scrollable: true
-  pdf:
-    documentclass: scrartcl
-    institute: University of New Mexico
-    mainfont: Georgia
-    fontsize: 10.5pt
-    linestretch: 1.2
-    number-sections: true
-    latex-output-dir: "Handouts"
-    pagestyle: plain
-    highlight-style: tango # pygments, zenburn, tango, kate, monochrome, espresso, zenburn, haddock, breezedark, breezelight
-    code-block-bg: "#f8f8f8"   # hexcolor: #f8f8f8 (light gray), #f0f0f0 (lighter gray), #e8e8e8 (lightest gray), #f8f8ff (light blue), #dfdfef (blue)
-    fig-width: 7
-    fig-height: 5
-    # include-in-header: preamble.tex
-    keep-tex: true
-    toc: true
-    toc-depth: 2
-  typst:
-    papersize: us-letter
-    mainfont: "Latin Modern Roman"
-    fontsize: 10.5pt
-    fig-width: 7
-    fig-height: 5
-    margin:
-      left: 1in
-      right: 1in
-    toc: false
-    citeproc: true
-    csl: https://www.zotero.org/styles/apa
-execute:
-  echo: true
-  warning: false
-  error: false 
+    # output-dir: "Handouts"
+#   revealjs: 
+#     # include-in-header: preamble.html
+#     incremental: false
+#     smaller: false
+#     scrollable: true
+#     background-transition: fade
+#     progress: true
+#     history: true
+#     hash-type: number    
+#     slide-number: c/t
+#     show-slide-number: all  
+#     menu:
+#       side: right
+#       width: normal
+#       numbers: true
+#     chalkboard:
+#       theme: chalkboard
+#     css: style.css
+#   clean-revealjs:
+#     self-contained: true
+#     incremental: false
+#     slide-number: c/t
+#     smaller: false
+#     scrollable: true
+#   pdf:
+#     documentclass: scrartcl
+#     institute: University of New Mexico
+#     mainfont: Georgia
+#     fontsize: 10.5pt
+#     linestretch: 1.2
+#     number-sections: true
+#     latex-output-dir: "Handouts"
+#     pagestyle: plain
+#     highlight-style: tango # pygments, zenburn, tango, kate, monochrome, espresso, zenburn, haddock, breezedark, breezelight
+#     code-block-bg: "#f8f8f8"   # hexcolor: #f8f8f8 (light gray), #f0f0f0 (lighter gray), #e8e8e8 (lightest gray), #f8f8ff (light blue), #dfdfef (blue)
+#     fig-width: 7
+#     fig-height: 5
+#     # include-in-header: preamble.tex
+#     keep-tex: true
+#     toc: true
+#     toc-depth: 2
+#   typst:
+#     papersize: us-letter
+#     mainfont: "Latin Modern Roman"
+#     fontsize: 10.5pt
+#     fig-width: 7
+#     fig-height: 5
+#     margin:
+#       left: 1in
+#       right: 1in
+#     toc: false
+#     citeproc: true
+#     csl: https://www.zotero.org/styles/apa
+# execute:
+#   echo: true
+#   warning: false
+#   error: false 
 monofont: 'Fira Code'
 df-print: kable
 # fig-cap-location: bottom

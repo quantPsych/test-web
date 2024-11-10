@@ -1,0 +1,139 @@
+##########################################################
+################ Logistic Regression#####################
+##########################################################
+#################Example Admission Data######################
+
+install.packages("aod")
+library(aod)
+
+ex.data <- read.csv("C:/jenn/teaching/stat579/data/binary.csv")
+nrow(ex.data)
+#This dataset has a binary response (outcome, dependent) variable called admit, 1 admit, 0 no admission. 
+#There are three predictor variables: gre, gpa and rank. 
+#variables gre and gpa are continuous. The variable rank takes on the values 1 through 4. Institutions 
+#with a rank of 1 have the highest prestige, 
+#while those with a rank of 4 have the lowest. 
+
+## view the first few rows of the data
+head(ex.data)
+
+
+#Descriptive Statistics
+summary(ex.data)
+sapply(ex.data, sd) #use sapply to apply the sd function to each variable in the dataset.
+tapply(ex.data$gpa,ex.data$rank,mean)
+tapply(ex.data$gre,ex.data$rank,mean)
+
+
+## two-way contingency table of categorical outcome and predictors
+
+xtabs(~admit + rank, data = ex.data)
+
+
+####Logistic regression modeling
+ex.data$rank <- factor(ex.data$rank) #convert rank to a factor to indicate that rank should be treated as a 
+#categorical variable.
+
+###fit data with all variables
+myfit <- glm(admit ~ gre + gpa + rank, data = ex.data, family = "binomial")
+summary(myfit)
+anova(myfit)
+
+confint(myfit) ## CIs using profiled log-likelihood
+confint.default(myfit)   ## CIs using standard errors
+myfit$deviance   #G^2
+logLik(myfit) #log likelihood ratio
+# -2*(-229.2587) =458.52
+##GOF test
+
+pearsonchi<-sum(residuals(myfit, type = "pearson")^2)
+1 - pchisq(deviance(myfit), df.residual(myfit))
+#The p-value is large indicating no evidence of lack of fit.
+
+###prediction
+myfit$fit     #fitted probabilities
+plot(myfit$fit ~ gre, data=ex.data)
+plot(myfit$fit ~ gpa, data=ex.data)
+ggplot(ex.data,aes(x=gpa,y=admit))+geom_point()+geom_smooth(method="glm",se=FALSE,method.args = list(family="binomial"))+xlab("GPA") + ylab("Probability of Admission") 
+#default se=TRUE will give confidence bands
+
+
+
+mgre<-tapply(ex.data$gre, ex.data$rank, mean) # mean of gre by rank
+mgpa<-tapply(ex.data$gpa, ex.data$rank, mean) # mean of gpa by rank
+newdata1 <- with(ex.data, data.frame(gre = mgre, gpa = mgpa, rank = factor(1:4)))
+newdata1
+newdata1$rankP <- predict(myfit, newdata = newdata1, type = "response")
+newdata1
+fitted1<-predict(myfit)
+fitted2<-predict(myfit,type="response")
+exp(fitted1)/(1+exp(fitted1))
+
+## odds ratios
+exp(coef(myfit))
+
+## odds ratios and 95% CI
+exp(cbind(OR = coef(myfit), confint(myfit)))
+
+
+#test for an overall effect of rank using the wald.test function 
+wald.test(b = coef(myfit), Sigma = vcov(myfit), Terms = 4:6)
+
+#test that the coefficient for rank=2 is equal to the coefficient for rank=3
+l <- cbind(0, 0, 0, 1, -1, 0)
+wald.test(b = coef(myfit), Sigma = vcov(myfit), L = l)
+
+##comparing models
+
+myfit0<-glm(admit ~ 1, data = ex.data, family = "binomial")
+summary(myfit0)
+myfit2<-glm(admit ~ gre + gpa, data = ex.data, family = "binomial")
+summary(myfit2)
+myfit3<-glm(admit ~ gpa+rank, data = ex.data, family = "binomial")
+summary(myfit3)
+
+
+anova(myfit0,myfit,test="Chisq")
+qchisq(0.95,5)
+pchisq(41.459,5,lower.tail = FALSE)
+
+anova(myfit, myfit2)
+qchisq(0.95,3)
+pchisq(21.826,3,lower.tail = FALSE)
+
+anova(myfit3,myfit)
+qchisq(0.95,1)
+pchisq(4.3578,1,lower.tail = FALSE)
+
+
+#model selection
+upper<-formula(~gre+gpa+rank,data=ex.data)
+model.aic = step(myfit0, scope=list(lower= ~., upper= upper))
+                                   
+
+##diagnostics
+residuals(myfit) # deviance residuals
+residuals(myfit, "pearson") # pearson residuals
+
+smyfit<-summary(myfit)
+infv <- c(ex.data$admit,myfit$fit,hatvalues(myfit),rstandard(myfit),cooks.distance(myfit))
+inf<-matrix(infv,I(smyfit$df[1]+smyfit$df[2]),5,dimnames = list(NULL,
+c("y", "yhat", "lev","r","C")))
+inf
+
+#leverages
+plot(hatvalues(myfit))
+highleverage <- which(hatvalues(myfit) > .045)
+highleverage
+hatvalues(myfit)[highleverage]
+ex.data[373,]
+
+
+#cooks distance
+plot(cooks.distance(myfit))
+highcook <- which((cooks.distance(myfit)) > .05)
+cooks.distance(myfit)[highcook]
+
+
+
+
