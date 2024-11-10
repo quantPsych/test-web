@@ -1,0 +1,677 @@
+---
+title: "Longitudinal Data Analysis with Mixed-Effects Models in R- Part 1"
+author: 
+  - name: Davood Tofighi, Ph.D.
+    email: dtofighi@unm.edu
+    orcid: 0000-0001-8523-7776
+    affiliations: Department of Mathematics and Statistics, University of New Mexico
+html-math-method:
+  method: mathjax
+  url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+format:
+  html:
+    toc: false
+    toc-depth: 2
+    toc-expand: false
+    toc-float:
+      collapsed: true
+    number-sections: false
+    theme: readable
+    highlight-style: tango # pygments, zenburn, tango, kate, monochrome, espresso, zenburn, haddock, breezedark, breezelight
+    fig-width: 7
+    fig-height: 5
+    output-dir: "Handouts"
+  revealjs: 
+    # include-in-header: preamble.html
+    incremental: false
+    smaller: false
+    scrollable: true
+    background-transition: fade
+    progress: true
+    history: true
+    hash-type: number    
+    slide-number: c/t
+    show-slide-number: all  
+    menu:
+      side: right
+      width: normal
+      numbers: true
+    chalkboard:
+      theme: chalkboard
+    css: style.css
+  clean-revealjs:
+    self-contained: true
+    incremental: false
+    slide-number: c/t
+    smaller: false
+    scrollable: true
+  pdf:
+    documentclass: scrartcl
+    institute: University of New Mexico
+    mainfont: Georgia
+    fontsize: 10.5pt
+    linestretch: 1.2
+    number-sections: true
+    latex-output-dir: "Handouts"
+    pagestyle: plain
+    highlight-style: tango # pygments, zenburn, tango, kate, monochrome, espresso, zenburn, haddock, breezedark, breezelight
+    code-block-bg: "#f8f8f8"   # hexcolor: #f8f8f8 (light gray), #f0f0f0 (lighter gray), #e8e8e8 (lightest gray), #f8f8ff (light blue), #dfdfef (blue)
+    fig-width: 7
+    fig-height: 5
+    # include-in-header: preamble.tex
+    keep-tex: true
+    toc: true
+    toc-depth: 2
+  typst:
+    papersize: us-letter
+    mainfont: "Latin Modern Roman"
+    fontsize: 10.5pt
+    fig-width: 7
+    fig-height: 5
+    margin:
+      left: 1in
+      right: 1in
+    toc: false
+    citeproc: true
+    csl: https://www.zotero.org/styles/apa
+execute:
+  echo: true
+  warning: false
+  error: false 
+monofont: 'Fira Code'
+df-print: kable
+# fig-cap-location: bottom
+# tbl-cap-location: top
+# citation: false
+bibliography: references.bib
+csl: apa.csl
+nocite: |
+  @demidenko2013,@harville1997,@searle2006,@magnus2019,@petersen2012matrix,@myers2010, hartig2024, @bates205,@pinheiro2000
+---
+
+
+# Introduction to Correlated Data
+
+In statistical analyses, we often encounter data where observations are **not independent**. Such data are referred to as **correlated data**. Understanding and properly modeling correlated data is crucial for accurate inference and prediction.
+
+## Intuitive Explanation
+
+When data are collected in such a way that some observations are related to each other, we cannot assume that each data point provides completely new information. For example, measurements taken on the same individual over time are likely to be more similar than measurements taken on different individuals. Ignoring this correlation can lead to incorrect conclusions.
+
+## Types of Correlated Data
+
+### Multivariate Observations
+
+**Definition**: Multiple characteristics measured simultaneously on the same subject.
+
+**Example**: Measuring both systolic and diastolic blood pressure at the same time on a patient.
+
+**Intuition**: Since these measurements are taken from the same person at the same time, they may be related—for instance, individuals with higher systolic pressure may also have higher diastolic pressure.
+
+### Clustered Data
+
+**Definition**: Observations grouped into clusters where members within the same cluster are more similar.
+
+**Example**: Measuring diastolic blood pressure of all members within several families.
+
+**Intuition**: Family members share genetics and environmental factors, so their measurements are likely to be more similar compared to members of other families.
+
+### Repeated Measurements
+
+**Definition**: The same characteristic measured multiple times under different conditions for each subject.
+
+**Example**: Recording diastolic blood pressure under various stress tests for each individual.
+
+**Intuition**: Each individual's response to different conditions may be correlated because of their inherent characteristics.
+
+### Longitudinal Data
+
+**Definition**: Measurements of the same characteristic over time for each subject.
+
+**Example**: Tracking a child's body mass index (BMI) annually from age 5 to 18.
+
+**Intuition**: An individual's measurements over time are likely to be correlated, reflecting their growth pattern.
+
+### Spatially Correlated Data
+
+**Definition**: Observations correlated due to spatial proximity.
+
+**Example**: Soil nutrient levels measured across different locations in a field.
+
+**Intuition**: Locations that are close together may have similar soil properties due to shared environmental conditions.
+
+# Challenges in Repeated Measures and Longitudinal Designs
+
+When dealing with repeated measures and longitudinal data, we must be aware of potential issues that can affect our analysis.
+
+## Order Effect
+
+**Explanation**: The sequence in which treatments or conditions are administered can influence the responses.
+
+**Example**: In evaluating five different advertisements, subjects may give higher ratings to advertisements shown later due to increased familiarity or fatigue.
+
+**Remedy**: Randomize the order of treatments to mitigate order effects.
+
+## Carry-over Effect
+
+**Explanation**: The effect of a previous treatment can carry over and influence the response to the subsequent treatment.
+
+**Example**: Tasting a spicy soup before a bland one may affect the rating of the bland soup.
+
+**Remedy**: Allow sufficient time between treatments to minimize carry-over effects.
+
+## Time Effect in Longitudinal Studies
+
+**Explanation**: The effect of a treatment or condition may change over time.
+
+**Example**: In evaluating a new drug, its effect may diminish as the body adapts over time.
+
+**Remedy**: Incorporate time effects into the model, such as using random intercepts and slopes in mixed-effects models.
+
+# Modeling Approaches
+
+To properly analyze correlated data, we need models that account for the correlation structure.
+
+## Simple Linear Regression Model
+
+**Model**:
+
+$$
+y_{ij} = \beta_1 + \beta_2 \text{age}_{ij} + \epsilon_{ij}, \quad \epsilon_{ij} \stackrel{\text{iid}}{\sim} N(0, \sigma^2)
+$$
+
+- $y_{ij}$: Response for subject $i$ at time $j$.
+- Assumes the same relationship between age and response for all subjects.
+- **Limitation**: Ignores potential correlation between repeated measurements on the same subject.
+
+## Intuitive Explanation
+
+This model treats all observations as independent, assuming that knowing one measurement tells us nothing about another. However, in longitudinal data, measurements from the same subject are likely to be correlated.
+
+## Subject-specific Intercepts and Slopes
+
+**Model**:
+
+$$
+y_{ij} = \beta_{1i} + \beta_{2i} \text{age}_{ij} + \epsilon_{ij}
+$$
+
+- Each subject has their own intercept $\beta_{1i}$ and slope $\beta_{2i}$.
+- **Limitation**: Leads to a large number of parameters ($2n$ parameters for $n$ subjects), which can overfit the data and does not allow for generalization to the population.
+
+## Mixed-effects Models
+
+**Model**:
+
+$$
+\begin{aligned}
+\beta_{1i} &= \beta_1 + b_{1i}, \quad b_{1i} \stackrel{\text{iid}}{\sim} N(0, \sigma_1^2) \\
+\beta_{2i} &= \beta_2 + b_{2i}, \quad b_{2i} \stackrel{\text{iid}}{\sim} N(0, \sigma_2^2) \\
+y_{ij} &= \beta_1 + \beta_2 \text{age}_{ij} + b_{1i} + b_{2i} \text{age}_{ij} + \epsilon_{ij}
+\end{aligned}
+$$
+
+- Combines fixed effects ($\beta_1, \beta_2$) with random effects ($b_{1i}, b_{2i}$).
+- **Intuitive Explanation**: The fixed effects represent the average relationship in the population, while the random effects capture individual deviations from this average.
+
+## Mathematical Derivation
+
+In matrix form, the model can be written as:
+
+$$
+\mathbf{y}_i = \mathbf{X}_i \boldsymbol{\beta} + \mathbf{Z}_i \mathbf{b}_i + \boldsymbol{\epsilon}_i
+$$
+
+- $\mathbf{y}_i$: Vector of responses for subject $i$.
+- $\mathbf{X}_i$: Design matrix for fixed effects.
+- $\boldsymbol{\beta}$: Vector of fixed effects parameters.
+- $\mathbf{Z}_i$: Design matrix for random effects.
+- $\mathbf{b}_i$: Random effects for subject $i$, with $\mathbf{b}_i \sim N(\mathbf{0}, \mathbf{G})$.
+- $\boldsymbol{\epsilon}_i$: Residual errors, with $\boldsymbol{\epsilon}_i \sim N(\mathbf{0}, \mathbf{R}_i)$.
+
+The covariance of $\mathbf{y}_i$ is:
+
+$$
+\operatorname{Var}(\mathbf{y}_i) = \mathbf{Z}_i \mathbf{G} \mathbf{Z}_i^\top + \mathbf{R}_i
+$$
+
+**References**:
+
+- Pinheiro and Bates (2000), Chapters 1-2.
+- Fitzmaurice et al. (2011), Chapters 5-6.
+
+# General Linear Models for Longitudinal Data
+
+We generalize the model for longitudinal data using matrix notation.
+
+## Model Specification
+
+$$
+\mathbf{y}_i = \mathbf{X}_i \boldsymbol{\beta} + \boldsymbol{\epsilon}_i
+$$
+
+- $\mathbf{y}_i$: $n_i \times 1$ vector of responses for subject $i$.
+- $\mathbf{X}_i$: $n_i \times p$ design matrix for fixed effects.
+- $\boldsymbol{\beta}$: $p \times 1$ vector of fixed effects parameters.
+- $\boldsymbol{\epsilon}_i$: $n_i \times 1$ vector of errors.
+
+Assuming:
+
+- $E(\boldsymbol{\epsilon}_i) = \mathbf{0}$.
+- $\operatorname{Var}(\boldsymbol{\epsilon}_i) = \boldsymbol{\Sigma}_i$.
+
+## Intuitive Explanation
+
+This model accounts for the correlation within subjects by specifying a covariance matrix $\boldsymbol{\Sigma}_i$ for the errors. By appropriately modeling $\boldsymbol{\Sigma}_i$, we can capture the dependence structure in the data.
+
+## Example: Childhood Obesity Study
+
+- $n$ children are followed over time.
+- BMI measurements are recorded at various ages.
+- Objective: Model BMI as a function of age.
+
+### Data Structure
+
+Each child $i$ has measurements:
+
+$$
+\mathbf{y}_i = \begin{pmatrix}
+y_{i1} \\
+y_{i2} \\
+\vdots \\
+y_{in_i}
+\end{pmatrix}
+$$
+
+with corresponding ages:
+
+$$
+\mathbf{t}_i = \begin{pmatrix}
+t_{i1} \\
+t_{i2} \\
+\vdots \\
+t_{in_i}
+\end{pmatrix}
+$$
+
+We can model:
+
+$$
+\mathbf{y}_i = \beta_1 \mathbf{1} + \beta_2 \mathbf{t}_i + \boldsymbol{\epsilon}_i
+$$
+
+# Covariance Structures in Longitudinal Data
+
+Choosing an appropriate covariance structure $\boldsymbol{\Sigma}_i$ is crucial for valid inference.
+
+## Equicorrelation Structure
+
+**Definition**: Assumes constant variance and equal correlation between any pair of observations within a subject.
+
+**Covariance Matrix**:
+
+$$
+\boldsymbol{\Sigma}_i = \sigma^2 \left( (1 - \rho) \mathbf{I}_{n_i} + \rho \mathbf{1}_{n_i} \mathbf{1}_{n_i}^\top \right)
+$$
+
+- $\sigma^2$: Variance of observations.
+- $\rho$: Correlation between any two observations within a subject.
+
+**Intuitive Explanation**: Every pair of observations within a subject is equally correlated. This might be appropriate when the measurements are interchangeable.
+
+## Compound Symmetry
+
+A special case of equicorrelation.
+
+**Covariance Matrix**:
+
+$$
+\boldsymbol{\Sigma}_i = \sigma_e^2 \mathbf{I}_{n_i} + \sigma_b^2 \mathbf{1}_{n_i} \mathbf{1}_{n_i}^\top
+$$
+
+- $\sigma_e^2$: Within-subject (error) variance.
+- $\sigma_b^2$: Between-subject variance.
+
+**Intuitive Explanation**: The total variance is partitioned into within-subject and between-subject components.
+
+## Mathematical Proof of Positive Definiteness
+
+To ensure the covariance matrix is valid, it must be positive definite.
+
+**Proof**:
+
+Let $\mathbf{v} \in \mathbb{R}^{n_i}$, then:
+
+$$
+\mathbf{v}^\top \boldsymbol{\Sigma}_i \mathbf{v} = \sigma_e^2 \mathbf{v}^\top \mathbf{v} + \sigma_b^2 (\mathbf{v}^\top \mathbf{1}_{n_i})^2 \geq 0
+$$
+
+Since $\sigma_e^2 \geq 0$ and $\sigma_b^2 \geq 0$, $\boldsymbol{\Sigma}_i$ is positive semi-definite. If either $\sigma_e^2 > 0$ or $\sigma_b^2 > 0$, then $\boldsymbol{\Sigma}_i$ is positive definite.
+
+## Autoregressive Structure (AR(1))
+
+**Definition**: Assumes correlations decay exponentially with time lag.
+
+**Covariance Matrix**:
+
+$$
+\boldsymbol{\Sigma}_i(j, k) = \sigma^2 \rho^{|j - k|}
+$$
+
+**Intuitive Explanation**: Measurements closer in time are more highly correlated than those further apart.
+
+## Proof of Positive Definiteness of AR(1)
+
+**Proof Sketch**:
+
+An AR(1) covariance matrix is Toeplitz and can be shown to be positive definite if $|\rho| < 1$ and $\sigma^2 > 0$. This follows from the properties of stationary time series and the spectral density function.
+
+**Reference**:
+
+- Brockwell and Davis (1991), _Time Series: Theory and Methods_, Chapters on ARMA processes.
+
+# Deciding Among Covariance Models
+
+## Model Fit
+
+Use criteria like Akaike Information Criterion (AIC) or Bayesian Information Criterion (BIC) to compare models with different covariance structures.
+
+- **AIC**: $\text{AIC} = -2 \log L + 2 p$
+- **BIC**: $\text{BIC} = -2 \log L + p \log N$
+
+where:
+
+- $L$: Likelihood of the model.
+- $p$: Number of parameters.
+- $N$: Number of observations.
+
+Lower AIC or BIC values indicate a better model fit.
+
+## Residual Diagnostics
+
+Examine residual plots to detect patterns that may suggest inadequacies in the model or covariance structure.
+
+## Subject-Matter Knowledge
+
+Consider the nature of the data and underlying processes. For example, if measurements are equally spaced in time and we expect correlations to decrease with lag, an AR(1) structure may be appropriate.
+
+# Numerical Examples in R
+
+## Example 1: Childhood Obesity Data
+
+We will illustrate how to model BMI as a function of age using mixed-effects models in R.
+
+### Step-by-Step Analysis
+
+
+1. **Load Data**:
+
+```{r}
+pacman::p_load(dplyr, ggplot2, brolgar, lme4, lmerTest)
+```
+
+```{r}
+obesity_data <- read.csv("childhood_obesity.csv")
+head(obesity_data)
+```
+
+2. **Exploratory Data Analysis**:
+
+```{r}
+library(ggplot2)
+ggplot(obesity_data, aes(x = Age, y = BMI, group = ChildID)) +
+    geom_line(alpha = 0.5) +
+    geom_point()
+```
+
+3. **Fit a Mixed-Effects Model**:
+
+```{r}
+library(lme4)
+model <- lmer(BMI ~ Age + (Age | ChildID), data = obesity_data)
+summary(model)
+```
+
+4. **Interpret Results**:
+
+   - **Fixed Effects**: Estimate the average effect of age on BMI across all children.
+   - **Random Effects**: Capture the variability in intercepts and slopes among children.
+
+5. **Model Diagnostics**:
+
+```r
+   plot(model)
+```
+
+   - Check residuals for normality and homoscedasticity.
+   - Examine random effects to see if the variability is adequately captured.
+
+## Example 2: Dental Data
+
+### Data Structure
+
+The data consist of orthodontic measurements for boys and girls at ages 8, 10, 12, and 14.
+
+### Analysis Steps
+
+1. **Aggregate Data**:
+
+   ```r
+   aggregate_data <- aggregate(Distance ~ Age + Gender, data = dental_data, mean)
+   ```
+
+2. **Plot Mean Profiles**:
+
+   ```r
+   ggplot(aggregate_data, aes(x = Age, y = Distance, color = as.factor(Gender))) +
+     geom_line() +
+     geom_point()
+   ```
+
+3. **Fit a Mixed-Effects Model with Interaction**:
+
+   ```r
+   model <- lmer(Distance ~ Age * Gender + (Age | Subject), data = dental_data)
+   summary(model)
+   ```
+
+4. **Interpretation**:
+
+   - **Interaction Term**: Tests whether the effect of age on distance differs by gender.
+   - **Random Effects**: Account for individual variability in growth patterns.
+
+# Advanced Topics
+
+## Quadratic Curve Fitting
+
+In some studies, the relationship between the response and time is nonlinear.
+
+### Example: Hemoglobin Levels Post-Surgery
+
+Suppose we have hemoglobin measurements at weeks 0, 1, 2, and 3 after surgery.
+
+### Model Specification
+
+Let:
+
+$$
+\delta_i = \begin{cases}
+1 & \text{if male} \\
+0 & \text{if female}
+\end{cases}
+$$
+
+Model:
+
+$$
+y_{ij} = \beta_1 + \beta_2 t_{ij} + \beta_3 t_{ij}^2 + \beta_4 \delta_i + \beta_5 \delta_i t_{ij} + \beta_6 \delta_i t_{ij}^2 + \epsilon_{ij}
+$$
+
+- Allows both intercept and slopes (linear and quadratic) to differ by gender.
+- **Intuitive Explanation**: Captures potential differences in recovery patterns between males and females.
+
+### Implementation in R
+
+```r
+model <- lmer(Hemoglobin ~ Time * Gender + I(Time^2) * Gender + (Time + I(Time^2) | PatientID), data = hemoglobin_data)
+```
+
+## Unequally Spaced Time Points
+
+When observations are taken at unequal intervals, we adjust covariance structures accordingly.
+
+### Continuous-Time AR(1) Model
+
+Correlation between observations is:
+
+$$
+\operatorname{Corr}(y_{ij}, y_{ik}) = \exp(-\phi |t_{ij} - t_{ik}|)
+$$
+
+- $\phi > 0$: Parameter controlling the rate of decay of correlation.
+
+### Implementation in R
+
+```r
+library(nlme)
+model <- lme(Distance ~ Age, random = ~ Age | Subject, correlation = corExp(form = ~ Age), data = dental_data)
+```
+
+# Appendix: Advanced Mathematical Derivations
+
+## Derivation of the Mixed-Effects Model Estimators
+
+### Maximum Likelihood Estimation
+
+The likelihood function for the mixed-effects model is:
+
+$$
+L(\boldsymbol{\beta}, \mathbf{G}, \sigma^2) = \prod_{i=1}^n f(\mathbf{y}_i | \boldsymbol{\beta}, \mathbf{G}, \sigma^2)
+$$
+
+where:
+
+$$
+f(\mathbf{y}_i | \boldsymbol{\beta}, \mathbf{G}, \sigma^2) = \int f(\mathbf{y}_i | \boldsymbol{\beta}, \mathbf{b}_i, \sigma^2) f(\mathbf{b}_i | \mathbf{G}) d\mathbf{b}_i
+$$
+
+Due to the integral over random effects $\mathbf{b}_i$, we typically use numerical methods or approximations (e.g., Laplace approximation) to maximize the likelihood.
+
+### Steps
+
+1. **Write the marginal distribution of $\mathbf{y}_i$**:
+
+$$
+\mathbf{y}_i \sim N(\mathbf{X}_i \boldsymbol{\beta}, \mathbf{Z}_i \mathbf{G} \mathbf{Z}_i^\top + \sigma^2 \mathbf{I})
+$$
+
+1. **Formulate the log-likelihood**:
+
+$$
+\ell(\boldsymbol{\beta}, \mathbf{G}, \sigma^2) = -\frac{1}{2} \sum_{i=1}^n \left( \log |\boldsymbol{\Sigma}_i| + (\mathbf{y}_i - \mathbf{X}_i \boldsymbol{\beta})^\top \boldsymbol{\Sigma}_i^{-1} (\mathbf{y}_i - \mathbf{X}_i \boldsymbol{\beta}) \right)
+$$
+
+1. **Take derivatives with respect to parameters** and set to zero to find the maximum likelihood estimates (MLEs).
+
+**References**:
+
+- Demidenko (2013), Chapters 5-6.
+- Pinheiro and Bates (2000), Chapters 5-6.
+
+## Proof of Properties of Covariance Structures
+
+### Proof that AR(1) Covariance Matrix is Positive Definite
+
+Let $\boldsymbol{\Sigma}$ be the AR(1) covariance matrix with entries $\sigma^2 \rho^{|j - k|}$.
+
+**Proof**:
+
+- **Property**: A symmetric Toeplitz matrix with $|\rho| < 1$ is positive definite.
+- **Method**:
+  - Show that all eigenvalues of $\boldsymbol{\Sigma}$ are positive.
+  - Use the fact that for $|\rho| < 1$, the AR(1) process is stationary and invertible.
+
+**References**:
+
+- Brockwell and Davis (1991), _Time Series: Theory and Methods_.
+- McCullagh and Nelder (1989), Chapters on covariance structures.
+
+# Exercises
+
+## Exercise 1: Modeling Longitudinal Data
+
+**Medium Difficulty**
+
+Using the `Orthodont` dataset from the `nlme` package:
+
+- Fit a linear mixed-effects model with random intercepts and slopes.
+- Assess whether gender affects the growth rate.
+
+**Solution**:
+
+```r
+library(nlme)
+data(Orthodont)
+model <- lme(distance ~ age * Sex, random = ~ age | Subject, data = Orthodont)
+summary(model)
+```
+
+- **Interpretation**:
+  - The interaction term `age:Sex` indicates whether the effect of age on distance differs by gender.
+  - Random effects capture individual variability in growth patterns.
+
+## Exercise 2: Covariance Structure Selection
+
+**Challenging Problem**
+
+Given a dataset with repeated measurements, compare different covariance structures:
+
+- Fit models using compound symmetry, AR(1), and unstructured covariance structures.
+- Use AIC and BIC to determine the most appropriate structure.
+
+**Solution**:
+
+```r
+library(nlme)
+# Fit Models with Different Covariance Structures
+model_cs <- gls(response ~ predictors, correlation = corCompSymm(), data = data)
+model_ar1 <- gls(response ~ predictors, correlation = corAR1(), data = data)
+model_un <- gls(response ~ predictors, correlation = corSymm(form = ~ 1 | subject), weights = varIdent(form = ~ 1 | time), data = data)
+
+# Compare Models
+AIC(model_cs, model_ar1, model_un)
+BIC(model_cs, model_ar1, model_un)
+```
+
+- **Interpretation**:
+  - Choose the model with the lowest AIC/BIC.
+  - Examine residuals and fit statistics to confirm the choice.
+
+## Exercise 3: Proof of Covariance Properties
+
+**Medium Difficulty**
+
+Prove that the compound symmetry covariance matrix is positive definite.
+
+**Solution**:
+
+Given $\boldsymbol{\Sigma} = \sigma_e^2 \mathbf{I} + \sigma_b^2 \mathbf{1} \mathbf{1}^\top$, show that $\boldsymbol{\Sigma}$ is positive definite if $\sigma_e^2 > 0$ and $\sigma_b^2 \geq 0$.
+
+**Proof**:
+
+- For any non-zero vector $\mathbf{v} \in \mathbb{R}^n$:
+
+$$
+\mathbf{v}^\top \boldsymbol{\Sigma} \mathbf{v} = \sigma_e^2 \mathbf{v}^\top \mathbf{v} + \sigma_b^2 (\mathbf{v}^\top \mathbf{1})^2$$
+
+
+- Since $\sigma_e^2 > 0$ and $\mathbf{v}^\top \mathbf{v} > 0$ for $\mathbf{v} \neq \mathbf{0}$, the first term is positive.
+- The second term $\sigma_b^2 (\mathbf{v}^\top \mathbf{1})^2$ is non-negative because $\sigma_b^2 \geq 0$.
+- Therefore, $\mathbf{v}^\top \boldsymbol{\Sigma} \mathbf{v} > 0$, proving that $\boldsymbol{\Sigma}$ is positive definite.
+
+**Reference**:
+
+- Demidenko (2013), Chapter 2.
+
+## References
+
