@@ -13,6 +13,11 @@ website:
       menu:
       - href: lectures/week1-intro/test-md.qmd
         text: Week 1 - Intro
+      - href: lectures/week13-random-slope/Week13-Longitudinal-Part-1-rev1.qmd
+        text: Week 13 - Random Slope
+      - href: lectures/week13-random-slope/Week13-Random-Intercept-Slope-Example.qmd
+        text: Week 13 - Random Intercept Slope
+
 format:
   html:
     theme: cosmo
