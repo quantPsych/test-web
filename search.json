@@ -14,6 +14,13 @@
     "text": "Header 1\nHeader 2\nHeader 3\n\n\n\n\nCell 1\nCell 2\nCell 3\n\n\nCell 4\nCell 5\nCell 6\n\n\n\n\n\n\nColumn1\nColumn2\nColumn3\n\n\n\n\nItem1\nItem1\nItem1\n\n\n\n\\(\\text{This is a math equation: } \\int_{0}^{\\infty} e^{-x^2} dx\\)"
   },
   {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site"
+  },
+  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "Testing Web-Pages",
@@ -21,10 +28,108 @@
     "text": "This is a Quarto website.\nTo learn more about Quarto websites visit https://quarto.org/docs/websites."
   },
   {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
     "section": "",
-    "text": "About this site"
+    "text": "This analysis examines the dental growth data to investigate the development of children’s teeth over time. Specifically, we analyze the distance from the center of the pituitary gland to the pteryomaxillary fissure (referred to as “distance”) measured at ages 8, 10, 12, and 14 years. The data includes observations from both boys and girls, allowing us to compare growth patterns between genders.\nObjectives:\n\nExplore growth patterns of boys and girls over time.\nModel the distance as a function of age and gender using mixed-effects models.\nCompare different covariance structures and select the best-fitting model.\nInterpret the results and understand implications for dental growth."
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#loading-libraries",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#loading-libraries",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Loading Libraries",
+    "text": "Loading Libraries\nWe use the tidyverse suite for data manipulation, lme4 and nlme for mixed-effects modeling, and ggplot2 for visualization.\n\n# Load necessary libraries\n# For various statistical functions\npacman::p_load(tidyverse, nlme, lme4, ggplot2, heplots, car, see, ggpubr, sandwich, clubSandwich, clubSandwich, lmerTest,lmtest, GGally, here)\n# Set the theme for ggplot2\nggplot2::theme_set(see::theme_modern())\n\n\ntidyverse: For data manipulation and visualization.\nnlme: For fitting linear and nonlinear mixed-effects models.\nlme4: For fitting linear mixed-effects models.\nggplot2: For enhanced data visualization.\nheplots: For testing covariance matrices.\ncar: For various statistical functions.\nsee: For custom themes and color palettes.\nggpubr: For publication-ready plots.\nsandwich: For robust standard errors.\nclubSandwich: For cluster-robust variance-covariance matrices."
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#loading-and-exploring-the-data",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#loading-and-exploring-the-data",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Loading and Exploring the Data",
+    "text": "Loading and Exploring the Data\nThe dental data is loaded from the provided file. We begin by reading the data and examining its structure.\n\n\n\nTable 1: Dental Data: First Few Rows\n\n\n# Load the dental data\n\n# dental_data &lt;- readr::read_table(\"https://raw.githubusercontent.com/quantPsych/test-web/refs/heads/main/data/dental.dat\",\n#     col_names = c(\"obs\", \"child\", \"age\", \"distance\", \"gender\")\n# )\n\n# dat_file &lt;- here(\"data\", \"dental.dat\")\n# Load the dental data\ndental_data &lt;- readr::read_table(\"dental.dat\",\n    col_names = c(\"obs\", \"child\", \"age\", \"distance\", \"gender\")\n)\n\n\n── Column specification ────────────────────────────────────────────────────────\ncols(\n  obs = col_double(),\n  child = col_double(),\n  age = col_double(),\n  distance = col_double(),\n  gender = col_double()\n)\n\n# Examine the first few rows\nhead(dental_data)\n\n# A tibble: 6 × 5\n    obs child   age distance gender\n  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;\n1     1     1     8     21        0\n2     2     1    10     20        0\n3     3     1    12     21.5      0\n4     4     1    14     23        0\n5     5     2     8     21        0\n6     6     2    10     21.5      0"
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#data-cleaning-and-transformation",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#data-cleaning-and-transformation",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Data Cleaning and Transformation",
+    "text": "Data Cleaning and Transformation\nWe convert the gender variable to a factor with labels for better readability and create separate datasets for boys and girls.\n\n# Convert gender to a factor with labels\ndental_data &lt;- dental_data |&gt; \n  mutate(\n    gender = factor(gender, levels = c(0, 1), labels = c(\"Girl\", \"Boy\")),\n    child = factor(child)\n  )\n\n# Create separate datasets for girls and boys\ndental_girls &lt;- dental_data |&gt;  filter(gender == \"Girl\")\ndental_boys &lt;- dental_data |&gt;  filter(gender == \"Boy\")"
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#calculating-mean-distances",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#calculating-mean-distances",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Calculating Mean Distances",
+    "text": "Calculating Mean Distances\nWe calculate the mean distance for each age and gender group.\n\n# Calculate mean distances by age and gender\nmean_distances &lt;- dental_data |&gt; \n  group_by(age, gender) |&gt; \n  summarize(mean_distance = mean(distance))\n\n`summarise()` has grouped output by 'age'. You can override using the `.groups`\nargument.\n\n# Display the mean distances\nmean_distances\n\n# A tibble: 8 × 3\n# Groups:   age [4]\n    age gender mean_distance\n  &lt;dbl&gt; &lt;fct&gt;          &lt;dbl&gt;\n1     8 Girl            21.2\n2     8 Boy             22.9\n3    10 Girl            22.2\n4    10 Boy             23.8\n5    12 Girl            23.1\n6    12 Boy             25.7\n7    14 Girl            24.1\n8    14 Boy             27.5"
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#boxplot-by-age-for-boys-and-girls",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#boxplot-by-age-for-boys-and-girls",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Boxplot by age for boys and girls",
+    "text": "Boxplot by age for boys and girls\n\ndental_data |&gt;\n  ggplot(aes(x = factor(age), y= distance, fill= gender)) +\n    geom_boxplot() +\n    labs(\n        x = \"Age\",\n        y = \"Distance\")+\n    see::scale_color_see_d()\n\n\n\n\n\n\n\nFigure 1: Boxplot of Distance by Age and Gender"
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#visualizing-growth-patterns",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#visualizing-growth-patterns",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Visualizing Growth Patterns",
+    "text": "Visualizing Growth Patterns\n\nInteraction Plot\nWe create an interaction plot to visualize the growth patterns of boys and girls over time.\n\n# Interaction plot for age and gender\nggplot(dental_data, aes(x = age, y = distance, color = gender, group = child)) +\n  geom_line(alpha = 0.3) +\n  stat_summary(aes(group = gender), fun = mean, geom = \"line\", size = 1.5) +\n  labs(\n    title = \"Dental Growth Over Age by Gender\",\n    x = \"Age\",\n    y = \"Distance\",\n    color = \"Gender\"\n  ) \n\nWarning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.\nℹ Please use `linewidth` instead.\n\n\n\n\n\n\n\n\nFigure 2: Dental Growth Over\n\n\n\n\n\nFigure 1: Interaction plot showing dental growth over age by gender.\n\n\nScatterplot Matrices\nWe create scatterplot matrices to explore the relationships between distances at different ages for boys and girls.\n\n# Convert data from long to wide format\ndental_wide &lt;- dental_data |&gt; \n  select(child, gender, age, distance) |&gt; \n  pivot_wider(names_from = age, values_from = distance, names_prefix = \"Age_\")\n\n# Separate datasets for girls and boys\ndental_wide_girls &lt;- dental_wide |&gt;  filter(gender == \"Girl\")\ndental_wide_boys &lt;- dental_wide |&gt;  filter(gender == \"Boy\")\n\n\n# Scatterplot matrix for girls\nggpairs(dental_wide_girls |&gt;  select(starts_with(\"Age_\")),\n        title = \"Scatterplot Matrix for Girls\")\n\n# Scatterplot matrix for boys\nggpairs(dental_wide_boys |&gt;  select(starts_with(\"Age_\")),\n        title = \"Scatterplot Matrix for Boys\")\n\n\n\n\n\n\n\nFigure 3: Scatterplot Matrice\n\n\n\n\n\n\n\n\n\n\n\nFigure 4: Scatterplot Matrice\n\n\n\n\n\nFigure 2: Scatterplot matrices for girls and boys showing relationships between distances at different ages."
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#covariance-and-correlation-matrices",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#covariance-and-correlation-matrices",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Covariance and Correlation Matrices",
+    "text": "Covariance and Correlation Matrices\nWe compute covariance and correlation matrices for distances at different ages for boys and girls.\n\n# Covariance and correlation for girls\ncov_girls &lt;- cov(dental_wide_girls |&gt;  select(starts_with(\"Age_\")), use = \"complete.obs\")\ncorr_girls &lt;- cor(dental_wide_girls |&gt;  select(starts_with(\"Age_\")), use = \"complete.obs\")\n\n# Covariance and correlation for boys\ncov_boys &lt;- cov(dental_wide_boys |&gt;  select(starts_with(\"Age_\")), use = \"complete.obs\")\ncorr_boys &lt;- cor(dental_wide_boys |&gt;  select(starts_with(\"Age_\")), use = \"complete.obs\")\n\n# Display covariance matrices\nround(cov_girls, 2)\n\n       Age_8 Age_10 Age_12 Age_14\nAge_8   4.51   3.35   4.33   4.36\nAge_10  3.35   3.62   4.03   4.08\nAge_12  4.33   4.03   5.59   5.47\nAge_14  4.36   4.08   5.47   5.94\n\nround(cov_boys, 2)\n\n       Age_8 Age_10 Age_12 Age_14\nAge_8   6.02   2.29   3.63   1.61\nAge_10  2.29   4.56   2.19   2.81\nAge_12  3.63   2.19   7.03   3.24\nAge_14  1.61   2.81   3.24   4.35\n\n# Display correlation matrices\nround(corr_girls, 2)\n\n       Age_8 Age_10 Age_12 Age_14\nAge_8   1.00   0.83   0.86   0.84\nAge_10  0.83   1.00   0.90   0.88\nAge_12  0.86   0.90   1.00   0.95\nAge_14  0.84   0.88   0.95   1.00\n\nround(corr_boys, 2)\n\n       Age_8 Age_10 Age_12 Age_14\nAge_8   1.00   0.44   0.56   0.32\nAge_10  0.44   1.00   0.39   0.63\nAge_12  0.56   0.39   1.00   0.59\nAge_14  0.32   0.63   0.59   1.00\n\n\nInterpretation: The covariance and correlation matrices indicate how distances at different ages are related within each gender group."
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#testing-equivalence-of-covariance-matrices",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#testing-equivalence-of-covariance-matrices",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Testing Equivalence of Covariance Matrices",
+    "text": "Testing Equivalence of Covariance Matrices\nWe use the boxM test to check if the covariance matrices are equivalent across genders.\n\n# Perform Box's M test\nboxm_result &lt;- boxM(dental_wide |&gt;  select(starts_with(\"Age_\")), dental_wide$gender)\n\n# Display the result\nboxm_result\n\n\n    Box's M-test for Homogeneity of Covariance Matrices\n\ndata:  select(dental_wide, starts_with(\"Age_\"))\nChi-Sq (approx.) = 17.335, df = 10, p-value = 0.06727\n\n\nInterpretation: A significant result (p-value &lt; 0.05) suggests that the covariance matrices are different across genders."
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#model-1-linear-mixed-effects-model-using-lme4",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#model-1-linear-mixed-effects-model-using-lme4",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Model 1: Linear Mixed-Effects Model Using lme4",
+    "text": "Model 1: Linear Mixed-Effects Model Using lme4\nWe use the lme4 package to fit a linear mixed-effects model with random intercepts and slopes for each child.\n\n# Fit the mixed-effects model with random intercept and slope for age\nmodel_lme4 &lt;- lmer(distance ~ age * gender + (age | child), data = dental_data)\n\n# Display the model summary\nsummary(model_lme4, correlation = FALSE)\n\nLinear mixed model fit by REML. t-tests use Satterthwaite's method [\nlmerModLmerTest]\nFormula: distance ~ age * gender + (age | child)\n   Data: dental_data\n\nREML criterion at convergence: 432.6\n\nScaled residuals: \n    Min      1Q  Median      3Q     Max \n-3.1694 -0.3862  0.0070  0.4454  3.8490 \n\nRandom effects:\n Groups   Name        Variance Std.Dev. Corr \n child    (Intercept) 5.77449  2.4030        \n          age         0.03245  0.1801   -0.67\n Residual             1.71663  1.3102        \nNumber of obs: 108, groups:  child, 27\n\nFixed effects:\n              Estimate Std. Error      df t value Pr(&gt;|t|)    \n(Intercept)    17.3727     1.2281 25.0078  14.147 1.94e-13 ***\nage             0.4795     0.1037 25.0113   4.625 9.85e-05 ***\ngenderBoy      -1.0321     1.5953 25.0078  -0.647   0.5235    \nage:genderBoy   0.3048     0.1347 25.0113   2.263   0.0326 *  \n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n\n\nInterpretation\n\nFixed Effects: Estimates of the average effect of age, gender, and their interaction on distance.\nRandom Effects: Allows each child to have their own intercept and slope, capturing individual growth trajectories."
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#model-2-generalized-least-squares-using-nlme",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#model-2-generalized-least-squares-using-nlme",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Model 2: Generalized Least Squares Using nlme",
+    "text": "Model 2: Generalized Least Squares Using nlme\nWe explore different covariance structures using the nlme package’s gls function.\n\nCompound Symmetry with Different Variances by Gender\n\n# Fit GLS model with compound symmetry and different variances by gender\nmodel_cs2 &lt;- gls(distance ~ age * gender,\n    data = dental_data,\n    correlation = corCompSymm(form = ~ 1 | child),\n    weights = varIdent(form = ~ 1 | gender),\n    method = \"ML\"\n)\n\n# Display the model summary\nsummary(model_cs2)\n\nGeneralized least squares fit by maximum likelihood\n  Model: distance ~ age * gender \n  Data: dental_data \n       AIC     BIC    logLik\n  430.6521 449.427 -208.3261\n\nCorrelation Structure: Compound symmetry\n Formula: ~1 | child \n Parameter estimate(s):\n      Rho \n0.7228109 \nVariance function:\n Structure: Different standard deviations per stratum\n Formula: ~1 | gender \n Parameter estimates:\n   Girl     Boy \n1.00000 1.71672 \n\nCoefficients:\n                  Value Std.Error   t-value p-value\n(Intercept)   17.372727 0.8175862 21.248802  0.0000\nage            0.479545 0.0612544  7.828755  0.0000\ngenderBoy     -1.032102 1.4222595 -0.725678  0.4697\nage:genderBoy  0.304830 0.1065571  2.860716  0.0051\n\n Correlation: \n              (Intr) age    gndrBy\nage           -0.824              \ngenderBoy     -0.575  0.474       \nage:genderBoy  0.474 -0.575 -0.824\n\nStandardized residuals:\n        Min          Q1         Med          Q3         Max \n-2.78081373 -0.63039864 -0.08111374  0.52140257  2.87744432 \n\nResidual standard error: 1.693422 \nDegrees of freedom: 108 total; 104 residual\n\n\n\n\nAutoregressive Structure (AR(1))\n\n# Fit GLS model with AR(1) correlation structure\nmodel_ar1 &lt;- gls(distance ~ age * gender,\n    data = dental_data,\n    correlation = corAR1(form = ~ 1 | child),\n    method = \"ML\"\n)\n\n# Display the model summary\nsummary(model_ar1)\n\nGeneralized least squares fit by maximum likelihood\n  Model: distance ~ age * gender \n  Data: dental_data \n      AIC      BIC    logLik\n  452.681 468.7738 -220.3405\n\nCorrelation Structure: AR(1)\n Formula: ~1 | child \n Parameter estimate(s):\n      Phi \n0.6071166 \n\nCoefficients:\n                  Value Std.Error   t-value p-value\n(Intercept)   17.321720 1.6345089 10.597507  0.0000\nage            0.483732 0.1409898  3.430973  0.0009\ngenderBoy     -0.729724 2.1232893 -0.343676  0.7318\nage:genderBoy  0.285840 0.1831511  1.560676  0.1216\n\n Correlation: \n              (Intr) age    gndrBy\nage           -0.949              \ngenderBoy     -0.770  0.730       \nage:genderBoy  0.730 -0.770 -0.949\n\nStandardized residuals:\n       Min         Q1        Med         Q3        Max \n-2.5993844 -0.6176776 -0.0866274  0.5525954  2.3391875 \n\nResidual standard error: 2.211512 \nDegrees of freedom: 108 total; 104 residual"
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#model-comparison",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#model-comparison",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Model Comparison",
+    "text": "Model Comparison\nWe compare models using Akaike Information Criterion (AIC) and Bayesian Information Criterion (BIC).\n\n# Compare models\nanova(model_cs2, model_ar1)\n\n          Model df      AIC      BIC    logLik   Test L.Ratio p-value\nmodel_cs2     1  7 430.6521 449.4270 -208.3261                       \nmodel_ar1     2  6 452.6810 468.7738 -220.3405 1 vs 2 24.0289  &lt;.0001\n\n\nInterpretation: The model with the lower AIC and BIC values is considered to have a better fit."
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#robust-standard-errors",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#robust-standard-errors",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Robust Standard Errors",
+    "text": "Robust Standard Errors\nWe calculate robust standard errors for the selected GLS model.\n\n# Use the `clubSandwich` package for robust SEs with GLS\nlibrary(clubSandwich)\n\n# Cluster-robust variance-covariance matrix\nse_cs2_robust &lt;- vcovCR(model_cs2, type = \"CR0\") |&gt;\n    diag() |&gt;\n    sqrt()\n\nse_cs2_robust \n\n  (Intercept)           age     genderBoy age:genderBoy \n   0.75309881    0.06556078    1.43077679    0.12136220"
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#model-summaries",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#model-summaries",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Model Summaries",
+    "text": "Model Summaries\n\nMixed-Effects Model (lme4)\n\n# Fixed effects\nfixef(model_lme4)\n\n  (Intercept)           age     genderBoy age:genderBoy \n   17.3727273     0.4795455    -1.0321023     0.3048295 \n\n# Random effects summary\nprint(VarCorr(model_lme4), comp = c(\"Variance\", \"Std.Dev.\"))\n\n Groups   Name        Variance Std.Dev. Corr  \n child    (Intercept) 5.774487 2.40302        \n          age         0.032452 0.18014  -0.667\n Residual             1.716625 1.31020        \n\n\nKey Findings:\n\nThe interaction between age and gender is significant, suggesting different growth rates between boys and girls.\nThe random effects indicate substantial variability between children in both baseline distance and growth rates.\n\n\n\nGLS Model with Compound Symmetry (nlme)\n\n# Fixed effects coefficients\ncoef(model_cs2)\n\n  (Intercept)           age     genderBoy age:genderBoy \n   17.3727273     0.4795455    -1.0321023     0.3048295 \n\n# Standard errors (model-based)\nsummary(model_cs2)$tTable[, \"Std.Error\"]\n\n  (Intercept)           age     genderBoy age:genderBoy \n   0.81758620    0.06125437    1.42225948    0.10655709 \n\n# Robust standard errors\nse_cs2_robust\n\n  (Intercept)           age     genderBoy age:genderBoy \n   0.75309881    0.06556078    1.43077679    0.12136220 \n\n\nKey Findings:\n\nThe compound symmetry structure with different variances by gender fits the data well.\nRobust standard errors provide a more reliable inference when model assumptions may be violated."
+  },
+  {
+    "objectID": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#visualizations",
+    "href": "lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.html#visualizations",
+    "title": "Analysis of Dental Growth Data Using Mixed-Effects Models",
+    "section": "Visualizations",
+    "text": "Visualizations\n\nPredicted Growth Curves\nWe plot the predicted growth curves for boys and girls based on the mixed-effects model.\n\n# Add predicted values to the data\ndental_data &lt;- dental_data |&gt; \n  mutate(pred_distance = predict(model_lme4))\n\n# Plot observed and predicted distances\nggplot(dental_data, aes(x = age, y = distance, color = gender)) +\n  geom_point(alpha = 0.5) +\n  geom_line(aes(y = pred_distance, group = child), linetype = \"dashed\") +\n  stat_summary(aes(y = pred_distance, group = gender), fun = mean, geom = \"line\", size = 1.5) +\n  facet_wrap(~ gender) +\n  labs(\n    title = \"Observed and Predicted Dental Growth\",\n    x = \"Age\",\n    y = \"Distance\",\n    color = \"Gender\"\n  )\n\n\n\n\n\n\n\nFigure 5: Observed and Predicted Dental Growth\n\n\n\n\n\nFigure 3: Observed and predicted dental growth curves for boys and girls.\n\n\nResidual Diagnostics\nWe examine the residuals to assess model assumptions.\n\n# Residual plots for the lme4 model\npar(mfrow = c(1, 2))\nplot(model_lme4, which = 1)  # Residuals vs Fitted\nqqnorm(resid(model_lme4))    # QQ-plot of residuals\nqqline(resid(model_lme4))\npar(mfrow = c(1, 1))\n\n\n\n\n\n\n\nFigure 6: Residual Plots for the lme4 Model\n\n\n\n\n\n\n\n\n\n\n\nFigure 7: Residual Plots for the lme4 Model\n\n\n\n\n\nInterpretation: The residual plots help assess the homoscedasticity and normality of residuals. Deviations from the line in the QQ-plot may suggest non-normality."
   }
 ]
