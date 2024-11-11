@@ -1,0 +1,430 @@
+---
+title: "Analysis of Dental Growth Data Using Mixed-Effects Models"
+format: html
+---
+
+# Introduction
+
+This analysis examines the dental growth data to investigate the development of children's teeth over time. Specifically, we analyze the distance from the center of the pituitary gland to the pteryomaxillary fissure (referred to as "distance") measured at ages 8, 10, 12, and 14 years. The data includes observations from both boys and girls, allowing us to compare growth patterns between genders.
+
+**Objectives:**
+
+- Explore growth patterns of boys and girls over time.
+- Model the distance as a function of age and gender using mixed-effects models.
+- Compare different covariance structures and select the best-fitting model.
+- Interpret the results and understand implications for dental growth.
+
+# Data Preparation
+
+## Loading Libraries
+
+We use the `tidyverse` suite for data manipulation, `lme4` and `nlme` for mixed-effects modeling, and `ggplot2` for visualization.
+
+```{r}
+#| label: setup
+# Load necessary libraries
+# For various statistical functions
+pacman::p_load(tidyverse, nlme, lme4, ggplot2, heplots, car, see, ggpubr, sandwich, clubSandwich, clubSandwich, lmerTest, GGally, here)
+# Set the theme for ggplot2
+ggplot2::theme_set(see::theme_modern())
+```
+
+- **`tidyverse`:** For data manipulation and visualization.
+- **`nlme`:** For fitting linear and nonlinear mixed-effects models.
+- **`lme4`:** For fitting linear mixed-effects models.
+- **`ggplot2`:** For enhanced data visualization.
+- **`heplots`:** For testing covariance matrices.
+- **`car`:** For various statistical functions.
+- **`see`:** For custom themes and color palettes.
+- **`ggpubr`:** For publication-ready plots.
+- **`sandwich`:** For robust standard errors.
+- **`clubSandwich`:** For cluster-robust variance-covariance matrices.
+
+## Loading and Exploring the Data
+
+The dental data is loaded from the provided file. We begin by reading the data and examining its structure.
+
+```{r}
+#| label: tbl-load-data
+#| tbl-cap: "Dental Data: First Few Rows"
+# Load the dental data
+
+# dat_file <- here("data", "dental.dat")
+# Load the dental data
+dental_data <- readr::read_table("dental.dat",
+    col_names = c("obs", "child", "age", "distance", "gender")
+)
+
+# Examine the first few rows
+head(dental_data)
+```
+
+## Data Cleaning and Transformation
+
+We convert the `gender` variable to a factor with labels for better readability and create separate datasets for boys and girls.
+
+```{r}
+#| label: data-cleaning
+# Convert gender to a factor with labels
+dental_data <- dental_data |> 
+  mutate(
+    gender = factor(gender, levels = c(0, 1), labels = c("Girl", "Boy")),
+    child = factor(child)
+  )
+
+# Create separate datasets for girls and boys
+dental_girls <- dental_data |>  filter(gender == "Girl")
+dental_boys <- dental_data |>  filter(gender == "Boy")
+```
+
+## Calculating Mean Distances
+
+We calculate the mean distance for each age and gender group.
+
+```{r}
+#| label: mean-distances
+# Calculate mean distances by age and gender
+mean_distances <- dental_data |> 
+  group_by(age, gender) |> 
+  summarize(mean_distance = mean(distance))
+
+# Display the mean distances
+mean_distances
+```
+
+## Boxplot by age for boys and girls
+```{r}
+#| label: fig-boxplot
+#| fig-cap: "Boxplot of Distance by Age and Gender"
+dental_data |>
+  ggplot(aes(x = factor(age), y= distance, fill= gender)) +
+    geom_boxplot() +
+    labs(
+        x = "Age",
+        y = "Distance")+
+    see::scale_color_see_d()
+```
+
+# Exploratory Data Analysis
+
+## Visualizing Growth Patterns
+
+### Interaction Plot
+
+We create an interaction plot to visualize the growth patterns of boys and girls over time.
+
+```{r}
+#| label: fig-interaction-plot
+#| fig-cap: "Dental Growth Over "
+# Interaction plot for age and gender
+ggplot(dental_data, aes(x = age, y = distance, color = gender, group = child)) +
+  geom_line(alpha = 0.3) +
+  stat_summary(aes(group = gender), fun = mean, geom = "line", size = 1.5) +
+  labs(
+    title = "Dental Growth Over Age by Gender",
+    x = "Age",
+    y = "Distance",
+    color = "Gender"
+  ) 
+```
+
+*Figure 1: Interaction plot showing dental growth over age by gender.*
+
+### Scatterplot Matrices
+
+We create scatterplot matrices to explore the relationships between distances at different ages for boys and girls.
+
+```{r}
+#| label: create-wide-dataset
+#| fig-cap: "Scatterplot Matrice"
+# Convert data from long to wide format
+dental_wide <- dental_data |> 
+  select(child, gender, age, distance) |> 
+  pivot_wider(names_from = age, values_from = distance, names_prefix = "Age_")
+
+# Separate datasets for girls and boys
+dental_wide_girls <- dental_wide |>  filter(gender == "Girl")
+dental_wide_boys <- dental_wide |>  filter(gender == "Boy")
+```
+
+```{r}
+#| label: fig-scatterplot-matrix
+#| layout-ncol: 2
+# Scatterplot matrix for girls
+ggpairs(dental_wide_girls |>  select(starts_with("Age_")),
+        title = "Scatterplot Matrix for Girls")
+
+# Scatterplot matrix for boys
+ggpairs(dental_wide_boys |>  select(starts_with("Age_")),
+        title = "Scatterplot Matrix for Boys")
+```
+
+*Figure 2: Scatterplot matrices for girls and boys showing relationships between distances at different ages.*
+
+## Covariance and Correlation Matrices
+
+We compute covariance and correlation matrices for distances at different ages for boys and girls.
+
+```{r}
+#| label: covariance-correlation
+# Covariance and correlation for girls
+cov_girls <- cov(dental_wide_girls |> select(starts_with("Age_")), use = "complete.obs")
+corr_girls <- cor(dental_wide_girls |> select(starts_with("Age_")), use = "complete.obs")
+
+# Covariance and correlation for boys
+cov_boys <- cov(dental_wide_boys |> select(starts_with("Age_")), use = "complete.obs")
+corr_boys <- cor(dental_wide_boys |> select(starts_with("Age_")), use = "complete.obs")
+```
+
+```{r}
+#| label: display-covariance-correlation
+
+# Display correlation
+round(corr_girls, 2)[lower.tri(corr_girls)]
+round(corr_boys, 2)[lower.tri(corr_boys)]
+```
+
+**Interpretation:** The covariance and correlation matrices indicate how distances at different ages are related within each gender group.
+
+## Testing Equivalence of Covariance Matrices
+
+We use the `boxM` test to check if the covariance matrices are equivalent across genders.
+
+```{r}
+#| label: boxm-test
+#| tbl-cap: "Box's M Test for Covariance Matrices"
+# Perform Box's M test
+boxm_result <- boxM(dental_wide |>  select(starts_with("Age_")), dental_wide$gender)
+
+# Display the result
+boxm_result
+```
+
+**Interpretation:** A significant result (p-value < 0.05) suggests that the covariance matrices are different across genders.
+
+# Modeling
+
+We aim to model the `distance` as a function of `age` and `gender`, accounting for the repeated measures within each child.
+
+## Model 1: Linear Mixed-Effects Model Using `lme4`
+
+We use the `lme4` package to fit a linear mixed-effects model with random intercepts and slopes for each child.
+
+```{r}
+#| label: lme4-model
+# Fit the mixed-effects model with random intercept and slope for age
+model_lme4 <- lmer(distance ~ age * gender + (age | child), data = dental_data)
+
+# Display the model summary
+summary(model_lme4, correlation = FALSE)
+```
+
+### Interpretation
+
+- **Fixed Effects:** Estimates of the average effect of age, gender, and their interaction on distance.
+- **Random Effects:** Allows each child to have their own intercept and slope, capturing individual growth trajectories.
+
+## Model 2: Generalized Least Squares Using `nlme`
+
+We explore different covariance structures using the `nlme` package's `gls` function.
+
+### Compound Symmetry with Different Variances by Gender
+
+```{r}
+#| label: gls-cs2
+# Fit GLS model with compound symmetry and different variances by gender
+model_cs2 <- gls(distance ~ age * gender,
+    data = dental_data,
+    correlation = corCompSymm(form = ~ 1 | child),
+    weights = varIdent(form = ~ 1 | gender),
+    method = "ML"
+)
+
+# Display the model summary
+summary(model_cs2)
+```
+
+### Autoregressive Structure (AR(1))
+
+```{r}
+#| label: gls-ar1
+# Fit GLS model with AR(1) correlation structure
+model_ar1 <- gls(distance ~ age * gender,
+    data = dental_data,
+    correlation = corAR1(form = ~ 1 | child),
+    method = "ML"
+)
+
+# Display the model summary
+summary(model_ar1)
+```
+
+### Autoregressive Structure (AR(1)) with Different Variances by Gender
+
+```{r}
+#| label: gls-ar1-var
+#| tbl-cap: "GLS Model with AR(1) and Different Variances Gender"
+
+# Fit GLS model with AR(1) correlation structure and different
+# variances
+model_ar1_var <- gls(distance ~ age* gender ,
+    data = dental_data,
+    correlation = corAR1(form = ~ 1 | child),
+    weights = varIdent(form = ~ 1 | gender ),
+    method = "ML"
+)
+
+# Display the model summary
+summary(model_ar1_var)
+```
+
+## Model Comparison
+
+We compare models using Akaike Information Criterion (AIC) and Bayesian Information Criterion (BIC).
+
+```{r}
+#| label: model-comparison
+# Compare models
+anova(model_cs2, model_ar1, model_ar1_var)
+```
+
+**Interpretation:** The model with the lower AIC and BIC values is considered to have a better fit.
+
+## Robust Standard Errors
+
+We calculate robust standard errors for the selected GLS model.
+
+```{r}
+#| label: robust-se
+robust_vcov_lmm <- clubSandwich::vcovCR(model_cs2, type = "CR2")
+# Cluster-robust variance-covariance matrix
+se_cs2_robust <- robust_vcov_lmm |>
+    diag() |>
+    sqrt()
+se_cs2_robust
+```
+
+- `vcovCR` function from the `clubSandwich` package is used to calculate robust standard errors.
+- `type = "CR2"` specifies the HC2 estimator for robust standard errors.
+
+From the package documentation:
+
+- `"CR0"` is the original form of the sandwich estimator (Liang & Zeger, 1986), which does not make any small-sample correction.
+- `"CR2"` is the "bias-reduced linearization" adjustment proposed by Bell and McCaffrey (2002) and further developed in Pustejovsky and Tipton (2017). The adjustment is chosen so that the variance-covariance estimator is exactly unbiased under a user-specified working model.
+
+## Hypothesis Testing
+
+We perform hypothesis testing for the selected GLS model using robust standard errors.
+
+```{r}
+#| label: tbl-hypothesis-testing-robust
+#| tbl-cap: "Hypothesis Testing for the GLS Model with Robust Standard Errors"
+
+clubSandwich::coef_test(model_cs2, vcov = robust_vcov_lmm, test = "Satterthwaite")
+```
+
+# Results
+
+## Model Summaries
+
+### Mixed-Effects Model (`lme4`)
+
+```{r}
+#| label: lme4-results
+# Fixed effects
+fixef(model_lme4)
+# Random effects summary
+print(VarCorr(model_lme4), comp = c("Variance", "Std.Dev."))
+```
+
+**Key Findings:**
+
+- The interaction between age and gender is significant, suggesting different growth rates between boys and girls.
+- The random effects indicate substantial variability between children in both baseline distance and growth rates.
+
+### GLS Model with Compound Symmetry (`nlme`)
+
+```{r}
+#| label: gls-results
+# Fixed effects coefficients
+coef(model_cs2)
+
+# Standard errors (model-based)
+summary(model_cs2)$tTable[, "Std.Error"]
+
+# Robust standard errors
+se_cs2_robust
+```
+
+**Key Findings:**
+
+- The compound symmetry structure with different variances by gender fits the data well.
+- Robust standard errors provide a more reliable inference when model assumptions may be violated.
+
+## Visualizations
+
+### Predicted Growth Curves
+
+We plot the predicted growth curves for boys and girls based on the mixed-effects model.
+
+```{r}
+#| label: fig-predicted-growth-curves
+#| fig-cap: "Observed and Predicted Dental Growth"
+# Add predicted values to the data
+dental_data <- dental_data |> 
+  mutate(pred_distance = predict(model_lme4))
+
+# Plot observed and predicted distances
+ggplot(dental_data, aes(x = age, y = distance, color = gender)) +
+  geom_point(alpha = 0.5) +
+  geom_line(aes(y = pred_distance, group = child), linetype = "dashed") +
+  stat_summary(aes(y = pred_distance, group = gender), fun = mean, geom = "line", size = 1.5) +
+  facet_wrap(~ gender) +
+  labs(
+    title = "Observed and Predicted Dental Growth",
+    x = "Age",
+    y = "Distance",
+    color = "Gender"
+  )
+```
+
+*Figure 3: Observed and predicted dental growth curves for boys and girls.*
+
+### Residual Diagnostics
+
+We examine the residuals to assess model assumptions.
+
+```{r}
+#| label: fig-residual-plots
+#| fig-cap: "Diagnostics Plots for the lme4 Model"
+#| column: body-outset
+#| fig-width: 7
+#| fig-height: 11
+# Residual plots for the lme4 model
+performance::check_model(model_lme4)
+```
+
+**Interpretation:** The residual plots help assess the homoscedasticity and normality of residuals. Deviations from the line in the QQ-plot may suggest non-normality.
+
+# Conclusion
+
+In this analysis, we investigated dental growth patterns in children using mixed-effects models. Our findings indicate that:
+
+- **Growth Patterns:** Both boys and girls show an increase in the distance measure with age, but boys tend to have a steeper growth trajectory.
+- **Model Selection:** The mixed-effects model with random intercepts and slopes provided a good fit, capturing individual variability in growth.
+- **Covariance Structures:** The GLS model with compound symmetry and different variances by gender was supported by the data, indicating that variability differs between genders.
+
+**Implications:** Understanding these growth patterns can aid in pediatric dental assessments, orthodontic planning, and early interventions when necessary.
+
+**Future Work:**
+
+- **Additional Covariates:** Incorporate factors such as socioeconomic status, nutrition, or health conditions to further explain variability in growth.
+- **Longitudinal Follow-Up:** Extend the study to include more time points or follow-up into adulthood to model long-term growth patterns.
+- **Advanced Modeling:** Explore nonlinear mixed-effects models or growth curve models if growth patterns are not strictly linear.
+
+# References
+
+- Pinheiro, J. C., & Bates, D. M. (2000). *Mixed-Effects Models in S and S-PLUS*. Springer.
+- Bates, D., Mächler, M., Bolker, B., & Walker, S. (2015). Fitting Linear Mixed-Effects Models Using *lme4*. *Journal of Statistical Software*, 67(1), 1–48.
+- Wickham, H. (2016). *ggplot2: Elegant Graphics for Data Analysis*. Springer-Verlag New York.
+- Fox, J., & Weisberg, S. (2019). *An R Companion to Applied Regression*. Sage Publications.

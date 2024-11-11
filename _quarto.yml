@@ -1,28 +1,37 @@
 project:
   type: website
-
+  resources:
+    - data/
 website:
   title: "Testing Web-Pages"
   navbar:
     left:
-    - href: index.qmd
-      text: Home
-    - href: about.qmd
-      text: About
-    - text: Lectures
-      menu:
-      - href: lectures/week1-intro/test-md.qmd
-        text: Week 1 - Intro
-      - href: lectures/week13-random-slope/Week13-Longitudinal-Part-1-rev1.qmd
-        text: Week 13 - Random Slope
-      - href: lectures/week13-random-slope/Week13-Random-Intercept-Slope-Example.qmd
-        text: Week 13 - Random Intercept Slope
-
+      - href: index.qmd
+        text: Home
+      - href: about.qmd
+        text: About
+      - text: Lectures
+        menu:
+          - href: lectures/week1-intro/test-md.qmd
+            text: Week 1 - Intro
+          - href: lectures/week13-random-slope/Week13-Longitudinal-Part-1-rev1.qmd
+            text: Week 13 - Random Slope
+          - href: lectures/week13-random-slope/Week13-Analysis-of-Dental-Data-Part1.qmd
+            text: Week 13 - Analysis of Dental Data Part1
 format:
   html:
-    theme: cosmo
+    theme: article
     css: styles.css
     toc: true
-
+    toc-depth: 2
+    toc-expand: false
+    toc-float:
+      collapsed: true
+    method: mathjax
+    url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    fig-width: 7
+    fig-height: 5
+    monofont: "Fira Code"
+    df-print: kable
 execute:
   freeze: auto
